@@ -1,257 +1,137 @@
-# node.js로 CRUD api만들기 (express)
-node.js로 API를 만들 때 보통은,  
-생성되어있는 데이터를 요청을받아 던져주거나, 기존에 있던 데이터에 새롭게 생성하는 메소드를 먼저익힌다.  
-하지만 http통신을 통해 업데이트요청과 특정데이터의 삭제요청도 가능한데,  
-그것을 좀더 섬세하게 알아보고 간단한 api를 만들어보자.  
+이전글: [api만들기 (express)](https://sleepybird.tistory.com/142)
 ___
-# 거시적인 구조  
+# 구조 설명  
 우선 내가 만들 api에 사용할 메소드는,  
 get post put 그리고 delete메소드다.  
 |메소드|url|취하는 행동|
 |---|---|---|
-|GET|/|게시물 불러오기|
-|POST|/write|새로운 게시물 작성|
-|POST|/modify|수정할 때 패스워드 확인|
-|POST|/delete|삭제할 때 패스워드 확인|
-|PUT|/modify|수정할 게시물 제출|
-|DELETE|/delete|게시물 삭제|  
-  
-  
-HTTP의 각메소드의 용도에 맞게 서버를 만들어보자.  
+|GET|/posts|게시물 불러오기|
+|POST|posts/write|새로운 게시물 작성|
+|POST|posts/modify|수정할 때 패스워드 확인|
+|POST|posts/delete|삭제할 때 패스워드 확인|
+|PUT|posts/modify|수정할 게시물 제출|
+|DELETE|posts/delete|게시물 삭제|  
+
+# 보안상 문제 해결하기  
+기존 http모듈을 쓰면, password를 실어서 post요청을 보낸다면,  
+__중간자 공격__ 에 취약하다. 중간에서 데이터를 가로챈다면,  
+게시글 삭제나, 수정 에 이용한 password정보가 그대로 탈취될것이다.  
+그래서 express에서 https모듈을 사용하여 취약한 보안을 보충한다.  
+https모듈을 사용할 때에는 __mkcert를사용해서__ 인증서를 받아올 수 있다.  
+
+<div class="colorscripter-code" style="color:#f0f0f0;font-family:Consolas, 'Liberation Mono', Menlo, Courier, monospace !important; position:relative !important;overflow:auto"><table class="colorscripter-code-table" style="margin:0;padding:0;border:none;background-color:#272727;border-radius:4px;" cellspacing="0" cellpadding="0"><tr><td style="padding:6px;border-right:2px solid #4f4f4f"><div style="margin:0;padding:0;word-break:normal;text-align:right;color:#aaa;font-family:Consolas, 'Liberation Mono', Menlo, Courier, monospace !important;line-height:130%"><div style="line-height:130%">1</div><div style="line-height:130%">2</div><div style="line-height:130%">3</div><div style="line-height:130%">4</div><div style="line-height:130%">5</div><div style="line-height:130%">6</div><div style="line-height:130%">7</div><div style="line-height:130%">8</div><div style="line-height:130%">9</div><div style="line-height:130%">10</div><div style="line-height:130%">11</div><div style="line-height:130%">12</div><div style="line-height:130%">13</div><div style="line-height:130%">14</div><div style="line-height:130%">15</div><div style="line-height:130%">16</div><div style="line-height:130%">17</div><div style="line-height:130%">18</div><div style="line-height:130%">19</div><div style="line-height:130%">20</div><div style="line-height:130%">21</div><div style="line-height:130%">22</div><div style="line-height:130%">23</div><div style="line-height:130%">24</div><div style="line-height:130%">25</div><div style="line-height:130%">26</div><div style="line-height:130%">27</div><div style="line-height:130%">28</div><div style="line-height:130%">29</div><div style="line-height:130%">30</div><div style="line-height:130%">31</div><div style="line-height:130%">32</div><div style="line-height:130%">33</div></div></td><td style="padding:6px 0;text-align:left"><div style="margin:0;padding:0;color:#f0f0f0;font-family:Consolas, 'Liberation Mono', Menlo, Courier, monospace !important;line-height:130%"><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#4be6fa">const</span>&nbsp;express&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;require(<span style="color:#ffd500">"express"</span>);</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#4be6fa">const</span>&nbsp;server&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;express();</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#4be6fa">const</span>&nbsp;bodyParser&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;require(<span style="color:#ffd500">"body-parser"</span>);</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#4be6fa">const</span>&nbsp;cors&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;require(<span style="color:#ffd500">"cors"</span>);</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#4be6fa">const</span>&nbsp;morgan&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;require(<span style="color:#ffd500">"morgan"</span>);</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#4be6fa">const</span>&nbsp;https&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;require(<span style="color:#ffd500">"https"</span>);</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#4be6fa">const</span>&nbsp;router&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;require(<span style="color:#ffd500">"./router"</span>);</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#4be6fa">const</span>&nbsp;fs&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;require(<span style="color:#ffd500">"fs"</span>)</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#4be6fa">const</span>&nbsp;port&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;<span style="color:#c10aff">4000</span>;</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#999999">//body-parser설정</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">server.use(bodyParser.json());</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#999999">//클라이언트에&nbsp;해당하는&nbsp;주소만&nbsp;포함하고&nbsp;get,&nbsp;post,&nbsp;put,&nbsp;delete,&nbsp;option메소드만&nbsp;허용!</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">server.use(cors({</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;<span style="color:#ffd500">"Access-Control-Allow-Origin"</span>:&nbsp;<span style="color:#ffd500">"https://127.0.0.1:3000"</span>,</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;<span style="color:#ffd500">"methods"</span>:&nbsp;<span style="color:#ffd500">"GET,PUT,POST,DELETE,OPTIONS"</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">}));</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#999999">//기록용</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">server.use(morgan(<span style="color:#ffd500">'dev'</span>));</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#999999">//라우터사용</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">server.use(<span style="color:#ffd500">'/posts'</span>,&nbsp;router);</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#999999">//https&nbsp;통신&nbsp;사용</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">https</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;.createServer(</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;{</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key:&nbsp;fs.readFileSync(<span style="color:#ffd500">'/Users/parkjisang/Desktop/dev/key.pem'</span>,&nbsp;<span style="color:#ffd500">'utf-8'</span>),</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cert:&nbsp;fs.readFileSync(<span style="color:#ffd500">'/Users/parkjisang/Desktop/dev/cert.pem'</span>,&nbsp;<span style="color:#ffd500">'utf-8'</span>),</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;},</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;server</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;)</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;.listen(port);</div></div><div style="text-align:right;margin-top:-13px;margin-right:5px;font-size:9px;font-style:italic"><a href="http://colorscripter.com/info#e" target="_blank" style="color:#4f4f4ftext-decoration:none">Colored by Color Scripter</a></div></td><td style="vertical-align:bottom;padding:0 2px 4px 0"><a href="http://colorscripter.com/info#e" target="_blank" style="text-decoration:none;color:white"><span style="font-size:9px;word-break:normal;background-color:#4f4f4f;color:white;border-radius:10px;padding:1px">cs</span></a></td></tr></table></div>
+
+# 데이터베이스를 활용해서 리팩토링하기  
+기존에 있던 데이터 방식은, 서버를 실행시키는 스크립트 내에서  
+계속 참조값(배열 또는객체)에다 값을 변경만 계속 해주고 있었다.  
+즉 서버를 실행시키는 스크립트가 꺼지면 __할당한 데이터도 사라진다.__  
+그래서 fileSystem모듈을 활용해 특정파일에다 __직접 기록__ 하는 방법도 있지만,  
+그 또한 데이터 구조에 한계가 있다.  
+그래서 __sequelize orm을 활용해__ 데이터베이스에 접근하는 방식으로 리팩토링 할것이다.  
+사실상 __리팩토링이아닌 전체적으로 갈아엎어야한다.__  
+시퀄라이즈 cli 를활용하면 __아주 간편하게 데이터베이스와 연결할 수 있다.__  또한 mvc모델을 설계하는데 아주 용이하다.
 ___
+# 테이블 구조 짜기  
+이전 글에서 보면 알겠지만 , 내가 만든서버에는 회원가입도 필요없다.  
+이름과 비밀번호 입력란, 그리고 내용을 입력할 뿐이다.  
+각커멘트마다 primary key를 가지게 한다.  
   
-## GET '/' 게시물 불러오기  
-클라이언트가 GET요청을 보내면 내가 원하는 서버응답은,  
-게시물에 담긴 내용들이다.  
-내가 바라는 json형태로 된 게시물 폼은 이러하다.  
-```
-{
-  "userId": "ㅇㅇ",
-  "password": "1234",
-  "title": "나루토 사스케 싸움수준 실화냐?",
-  "article": "가슴이 웅장해진다..."
-}
-```
-클라이언트에서 대충 게시물 규격에 맞춰서 보내주면 저런형태로  
-전환돼서 보내질거다. (클라이언트를 만들 미래의 나야 부탁해!)  
-data는 json형태로 보관되어 질것이고 저것이 여러개 있다면  
-이런 형태가 되지않을까  
-```
-{
-  posts:[
-    {
-      "id": 2,
-      "userId": 'ㅇㅇ',
-      "password": '1234',
-      "title": 'dd',
-      "article": 'afdasdfa'
-    },
-    {
-      "id": 1,
-      "userId": 'ㅇㅇ',
-      "password": '1234',
-      "title": '나루토 사스케 싸움수준 실화냐?',
-      "article": '가슴이 웅장해진다...'
-    }
-  ]
-}
-```
+|id|name|password|comment|
+|---|---|---|---|
+|1|'코공'|'ab123'|'코공코공'|
 
-그래서 '/'url에서 get요청의 반응으로 body로 보낼것은  
-저 데이터 그 자체다.  
+이런식으로 게시글이 __생성__ 되면 __INSERT TO__ 명령이 일어나고  
+__삭제__ 되면 __DELETE__ 명령어, __수정__되면 __UPDATE__,  
+그리고 읽어올떄는 SELECT id, name, comment FROM table를 불러올것이다.  
 
-## POST 새로운 게시물 작성  
-GET에서 내가 원하는 형태의 요청을 적었다.  
-저것 그대로,  
-```
-{
-  "userId":  유저아이디,
-  "password": 게시물비밀번호,
-  "title": 제목,
-  "article": 본문
-}
-```
-이런형식의 요청을 body를 통해 전달받는다.  
+___  
+# 기존서버에 sequalize ORM 입히기
+우선 npm으로 mysql2와 sequelize를 설치해줘야한다.  
+sequelize-cli까지 설치가 되면,  
   
-## POST 수정, 삭제 비밀번호 확인  
-클라이언트에서 수정이나 삭제버튼을 누르면, 비밀번호를 입력하라고 나올것이다.  
-그것도 추후 클라이언트를 만들 나한테 맡긴다.  
-그럼 요청의 body는 이런식으로 오길 나는 원한다.  
-```
-{
-  "id": 게시물아이디, 
-  "password": 게시물비밀번호
-}
-```
-만약 url이 __modify__ 일 경우  
-응답으로 해당게시물의 객체상태 데이터를 그대로 줄것이다.  
-응답받은 게시물 데이터를 토대로 기존에 작성하던 폼을 유지시켜준다.  
+프로젝트 폴더에 가서 부트스트랩핑해준다.  
+
+## npx sequelize-cli init
+<a href="https://imgur.com/Gqq3LhK"><img src="https://i.imgur.com/Gqq3LhK.png" title="source: imgur.com" /></a>
+
+부트스트래핑하면, mvc모델의 형태대로 디렉토리를 나누어준다.  
   
-만약 url이 __delete__ 일 경우  
-클라이언트에서 정말로 삭제하시겠습니까? 하고 한번더 되물어볼것이다.  
-응답에 보내는 body는 없다.  
+앞에 구상한 테이블 형태대로 모델을 만들어준다.  
+그럼 우리가 가장 먼저해야 할 짓은,  
+config를 수정하는것이다.  
+config파일은 js파일로 만들어서 환경변수를 활용할 수 있다.  
+## config파일 수정  
+<div class="colorscripter-code" style="color:#f0f0f0;font-family:Consolas, 'Liberation Mono', Menlo, Courier, monospace !important; position:relative !important;overflow:auto"><table class="colorscripter-code-table" style="margin:0;padding:0;border:none;background-color:#272727;border-radius:4px;" cellspacing="0" cellpadding="0"><tr><td style="padding:6px;border-right:2px solid #4f4f4f"><div style="margin:0;padding:0;word-break:normal;text-align:right;color:#aaa;font-family:Consolas, 'Liberation Mono', Menlo, Courier, monospace !important;line-height:130%"><div style="line-height:130%">1</div><div style="line-height:130%">2</div><div style="line-height:130%">3</div><div style="line-height:130%">4</div><div style="line-height:130%">5</div><div style="line-height:130%">6</div><div style="line-height:130%">7</div><div style="line-height:130%">8</div><div style="line-height:130%">9</div><div style="line-height:130%">10</div><div style="line-height:130%">11</div><div style="line-height:130%">12</div><div style="line-height:130%">13</div><div style="line-height:130%">14</div><div style="line-height:130%">15</div><div style="line-height:130%">16</div><div style="line-height:130%">17</div><div style="line-height:130%">18</div><div style="line-height:130%">19</div><div style="line-height:130%">20</div><div style="line-height:130%">21</div><div style="line-height:130%">22</div><div style="line-height:130%">23</div><div style="line-height:130%">24</div><div style="line-height:130%">25</div><div style="line-height:130%">26</div></div></td><td style="padding:6px 0;text-align:left"><div style="margin:0;padding:0;color:#f0f0f0;font-family:Consolas, 'Liberation Mono', Menlo, Courier, monospace !important;line-height:130%"><div style="padding:0 6px; white-space:pre; line-height:130%">require(<span style="color:#ffd500">"dotenv"</span>).config();</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;</div><div style="padding:0 6px; white-space:pre; line-height:130%">module.exports&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>{</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;<span style="color:#ffd500">"development"</span>:&nbsp;{</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#ffd500">"username"</span>:&nbsp;<span style="color:#ffd500">"root"</span>,</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#ffd500">"password"</span>:&nbsp;process.env.MYSQL_PASSWORD,</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#ffd500">"database"</span>:&nbsp;<span style="color:#ffd500">"simple-crud"</span>,</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#ffd500">"host"</span>:&nbsp;<span style="color:#ffd500">"127.0.0.1"</span>,</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#ffd500">"dialect"</span>:&nbsp;<span style="color:#ffd500">"mysql"</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;},</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;<span style="color:#ffd500">"test"</span>:&nbsp;{</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#ffd500">"username"</span>:&nbsp;<span style="color:#ffd500">"root"</span>,</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#ffd500">"password"</span>:&nbsp;process.env.MYSQL_PASSWORD,</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#ffd500">"database"</span>:&nbsp;<span style="color:#ffd500">"simple-crud"</span>,</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#ffd500">"host"</span>:&nbsp;<span style="color:#ffd500">"127.0.0.1"</span>,</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#ffd500">"dialect"</span>:&nbsp;<span style="color:#ffd500">"mysql"</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;},</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;<span style="color:#ffd500">"production"</span>:&nbsp;{</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#ffd500">"username"</span>:&nbsp;<span style="color:#ffd500">"root"</span>,</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#ffd500">"password"</span>:&nbsp;process.env.MYSQL_PASSWORD,</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#ffd500">"database"</span>:&nbsp;<span style="color:#ffd500">"simple-crud"</span>,</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#ffd500">"host"</span>:&nbsp;<span style="color:#ffd500">"127.0.0.1"</span>,</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#ffd500">"dialect"</span>:&nbsp;<span style="color:#ffd500">"mysql"</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;}</div><div style="padding:0 6px; white-space:pre; line-height:130%">}</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;</div></div><div style="text-align:right;margin-top:-13px;margin-right:5px;font-size:9px;font-style:italic"><a href="http://colorscripter.com/info#e" target="_blank" style="color:#4f4f4ftext-decoration:none">Colored by Color Scripter</a></div></td><td style="vertical-align:bottom;padding:0 2px 4px 0"><a href="http://colorscripter.com/info#e" target="_blank" style="text-decoration:none;color:white"><span style="font-size:9px;word-break:normal;background-color:#4f4f4f;color:white;border-radius:10px;padding:1px">cs</span></a></td></tr></table></div>
+
+</br>
+</br>
   
-## PUT 수정할 게시물 제출
-클라이언트에서 원하는 형태로 게시물 수정을 마쳤다면,  
-완료버튼을 누르는 순간 PUT요청이 갈것이다.  
-PUT요청에서 실릴 body는 새로운 게시물 요청의 폼과 비슷하다.  
-한번 설정한 비밀번호도 수정이가능할지 불가능할지 고민하다가, 그냥 수정가능으로 했다.
-```
-{
-  "id": "1",
-  "password": "1234"
-  "title": "찐따가 맞았다..",
-  "article": "그래도 가슴은 웅장하다"
-}
-```
-다만 차이점은 서버에있는 데이터에 __해당 게시물id 로 찾아가서__ 데이터 수정을 거쳐야한다.  
-해당 게시물 id로 찾아가는것은 최적화를 위해서 __이분탐색__ 을 통해 수행할 예정  
+## 모델만들기
+config파일을 저러한 형태대로 수정이 끝났다면,  
+model을 만들어준다.  
+sequelize-cli에서는 id(자동으로 증가하고 프라이머리키임),createdAt칼럼을 만들어준다.  
+그래서 cli명령어를 통해 만들 칼럼은, name, password, comment이다.  
+셋다 문자열로 저장할거임.  
+여기서 유의할 점은 만약 __테이블 이름을 posts로 할거다?__ 그러면,  
+__모델이름을 post로 해줘야한다__  
+post모델로 생성된 데이터의 모음이라 해서 migration을 진행하면,  
+__자동으로 뒤에 복수형 's'를 붙여준다.  
+그건 좀있다 지켜보자구!
+### npx sequelize-cli model:generate --name post --attributes name:string,password:string,comment:string  
+이 명령어를 보면 대충 어떤형태로 내가 원하는 테이블을 만들 때,  
+요긴하게 사용가능 할지 짐작이 가능할거다.  
+<a href="https://imgur.com/sdMimLk"><img src="https://i.imgur.com/sdMimLk.png" title="source: imgur.com" /></a>  
+성공적으로 모델이 만들어졌다고 뜨고, 모델로 향해보면,  
+<a href="https://imgur.com/RAtc4IZ"><img src="https://i.imgur.com/RAtc4IZ.png" title="source: imgur.com" /></a>
 
-## DELETE 삭제할 게시물 삭제  
-요청으로오는 바디의 데이터는 해당 게시물의 id뿐이다.  
-```
-{
-  "id": 1
-}
-```
+이렇게 post라는 모델이 생긴걸 확인할 수 있다.  
 
-구조를 완성했으니, 코드를 짜보자.  
+
+</br>
+
+## migration 진행하기  
+아까 post라는 모델을 만들었으나,  
+아직까진 내 db에 직접 영향이 가지는 않는다.  
+내 db까지 영향을 주게하려면 어떻게 해야될까?  
+__답은 migration다!__
+### npx sequelize-cli db:migrate
+위 명령어를 실행시켜 진행해보자.  
+그리고 내 데이터베이스에 들어가서 어떤 일이 벌어졌는지 확인해보자.  
+일단 뭔가 성공했다는 메세지를 볼 수 있다.  
+<a href="https://imgur.com/1AJyaRK"><img src="https://i.imgur.com/1AJyaRK.png" title="source: imgur.com" /></a>
+
+</br>
+데이터베이스로 후다닥달려가보자.  
+<a href="https://imgur.com/qHpMShY"><img src="https://i.imgur.com/qHpMShY.png" title="source: imgur.com" /></a>  
+
+어머나?!?! posts라는 테이블이 만들어진걸 확인가능하다.  
+<a href="https://imgur.com/qHpMShY"><img src="https://i.imgur.com/qHpMShY.png" title="source: imgur.com" /></a>
+
+테이블의 상태를 봐도 친절하게 updatedAt까지 만들어 준걸 볼 수있다.  
+게다가 id라는 칼럼을 넣고 primary키로 설정하는것은 물론 auto increment 까지 해준다! 대박!  
   
-___
-## node.js코드 (express)
-```javascript
-const express = require("express");
-const server = express();
-const bodyParser = require("body-parser");
-const cors = require("cors");
+## 만들어진 model을 토대로 controller만들기(mvc모델)
+mvc모델에 대해서 간략하게 설명하자면,  
+controller는 __model에게 명령을 내린다.__  
+model은 __database를 건든다.__  
+지금의 기능을 구현하기 위해서는 이정도설명으로 족하다.  
+모델은 cli가 이미 만들어줬다. 이게 orm의 편리함이다.  
+그렇다면 우리는 controller를 잘 만들어주기만하면된다.  
+controller에서 요청과 응답을 전부처리해버리자. 아니면 콜백도 쓰고 여간 복잡한게 아니다.  
+### 라우터코드  
+라우터에서 요청과 응답을 처리하려면 복잡하게 왔다갔다해야함.  
+그래서 controler가 만들어졌다 치고 코드를 짜보면,  
+<div class="colorscripter-code" style="color:#f0f0f0;font-family:Consolas, 'Liberation Mono', Menlo, Courier, monospace !important; position:relative !important;overflow:auto"><table class="colorscripter-code-table" style="margin:0;padding:0;border:none;background-color:#272727;border-radius:4px;" cellspacing="0" cellpadding="0"><tr><td style="padding:6px;border-right:2px solid #4f4f4f"><div style="margin:0;padding:0;word-break:normal;text-align:right;color:#aaa;font-family:Consolas, 'Liberation Mono', Menlo, Courier, monospace !important;line-height:130%"><div style="line-height:130%">1</div><div style="line-height:130%">2</div><div style="line-height:130%">3</div><div style="line-height:130%">4</div><div style="line-height:130%">5</div><div style="line-height:130%">6</div><div style="line-height:130%">7</div><div style="line-height:130%">8</div><div style="line-height:130%">9</div><div style="line-height:130%">10</div><div style="line-height:130%">11</div><div style="line-height:130%">12</div><div style="line-height:130%">13</div><div style="line-height:130%">14</div><div style="line-height:130%">15</div><div style="line-height:130%">16</div><div style="line-height:130%">17</div><div style="line-height:130%">18</div></div></td><td style="padding:6px 0;text-align:left"><div style="margin:0;padding:0;color:#f0f0f0;font-family:Consolas, 'Liberation Mono', Menlo, Courier, monospace !important;line-height:130%"><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#4be6fa">const</span>&nbsp;express&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;require(<span style="color:#ffd500">"express"</span>);</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#4be6fa">const</span>&nbsp;router&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;express.Router();</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#4be6fa">const</span>&nbsp;controler&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;require(<span style="color:#ffd500">"../controler"</span>);</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#999999">//모든&nbsp;포스트&nbsp;불러오기</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">router.get(<span style="color:#ffd500">'/'</span>,&nbsp;controler.get);</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#999999">//새로운&nbsp;게시물&nbsp;작성</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">router.post(<span style="color:#ffd500">'/write'</span>&nbsp;,controler.write);</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#999999">//수정할&nbsp;때&nbsp;패스워드&nbsp;확인</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">router.post(<span style="color:#ffd500">'/modify'</span>,&nbsp;controler.postPw);</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#999999">//삭제할&nbsp;때&nbsp;패스워드&nbsp;확인</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">router.post(<span style="color:#ffd500">'/delete'</span>,&nbsp;controler.postPw);</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#999999">//수정</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">router.put(<span style="color:#ffd500">'/modify'</span>,&nbsp;controler.modify);</div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#999999">//삭제</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">router.<span style="color:#4be6fa">delete</span>(<span style="color:#ffd500">'/delete'</span>,&nbsp;controler.<span style="color:#4be6fa">delete</span>)</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;</div><div style="padding:0 6px; white-space:pre; line-height:130%">module.exports&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;router;</div></div></td><td style="vertical-align:bottom;padding:0 2px 4px 0"><a href="http://colorscripter.com/info#e" target="_blank" style="text-decoration:none;color:white"><span style="font-size:9px;word-break:normal;background-color:#4f4f4f;color:white;border-radius:10px;padding:1px">cs</span></a></td></tr></table></div>
 
-const port = 3000;
+</br>
+그저 컨트롤러를 불러올 뿐이다.  
 
-const ip = "127.0.0.1";
+### 컨트롤러 코드  
+<div class="colorscripter-code" style="color:#f0f0f0;font-family:Consolas, 'Liberation Mono', Menlo, Courier, monospace !important; position:relative !important;overflow:auto"><table class="colorscripter-code-table" style="margin:0;padding:0;border:none;background-color:#272727;border-radius:4px;" cellspacing="0" cellpadding="0"><tr><td style="padding:6px;border-right:2px solid #4f4f4f"><div style="margin:0;padding:0;word-break:normal;text-align:right;color:#aaa;font-family:Consolas, 'Liberation Mono', Menlo, Courier, monospace !important;line-height:130%"><div style="line-height:130%">1</div><div style="line-height:130%">2</div><div style="line-height:130%">3</div><div style="line-height:130%">4</div><div style="line-height:130%">5</div><div style="line-height:130%">6</div><div style="line-height:130%">7</div><div style="line-height:130%">8</div><div style="line-height:130%">9</div><div style="line-height:130%">10</div><div style="line-height:130%">11</div><div style="line-height:130%">12</div><div style="line-height:130%">13</div><div style="line-height:130%">14</div><div style="line-height:130%">15</div><div style="line-height:130%">16</div><div style="line-height:130%">17</div><div style="line-height:130%">18</div><div style="line-height:130%">19</div><div style="line-height:130%">20</div><div style="line-height:130%">21</div><div style="line-height:130%">22</div><div style="line-height:130%">23</div><div style="line-height:130%">24</div><div style="line-height:130%">25</div><div style="line-height:130%">26</div><div style="line-height:130%">27</div><div style="line-height:130%">28</div><div style="line-height:130%">29</div><div style="line-height:130%">30</div><div style="line-height:130%">31</div><div style="line-height:130%">32</div><div style="line-height:130%">33</div><div style="line-height:130%">34</div><div style="line-height:130%">35</div><div style="line-height:130%">36</div><div style="line-height:130%">37</div><div style="line-height:130%">38</div><div style="line-height:130%">39</div><div style="line-height:130%">40</div><div style="line-height:130%">41</div><div style="line-height:130%">42</div><div style="line-height:130%">43</div><div style="line-height:130%">44</div><div style="line-height:130%">45</div><div style="line-height:130%">46</div><div style="line-height:130%">47</div><div style="line-height:130%">48</div><div style="line-height:130%">49</div><div style="line-height:130%">50</div><div style="line-height:130%">51</div><div style="line-height:130%">52</div><div style="line-height:130%">53</div><div style="line-height:130%">54</div><div style="line-height:130%">55</div><div style="line-height:130%">56</div><div style="line-height:130%">57</div><div style="line-height:130%">58</div><div style="line-height:130%">59</div><div style="line-height:130%">60</div><div style="line-height:130%">61</div><div style="line-height:130%">62</div></div></td><td style="padding:6px 0;text-align:left"><div style="margin:0;padding:0;color:#f0f0f0;font-family:Consolas, 'Liberation Mono', Menlo, Courier, monospace !important;line-height:130%"><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#4be6fa">const</span>&nbsp;{post}&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;require(<span style="color:#ffd500">"../models"</span>);</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;</div><div style="padding:0 6px; white-space:pre; line-height:130%">module.exports&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;{</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;get:&nbsp;async&nbsp;(req,&nbsp;res)<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span><span style="color:#aaffaa"></span><span style="color:#ff3399">&gt;</span>{</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#999999">/*&nbsp;attributes를&nbsp;설정해준&nbsp;이유는&nbsp;</span></div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#999999">&nbsp;&nbsp;&nbsp;&nbsp;절대로&nbsp;클라이언트는&nbsp;비밀번호같은&nbsp;개인정보를&nbsp;받아선&nbsp;안된다.</span></div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#999999">&nbsp;&nbsp;&nbsp;&nbsp;또한&nbsp;다른데이터는&nbsp;굳이&nbsp;쓸&nbsp;일이&nbsp;없어서다</span></div><div style="padding:0 6px; white-space:pre; line-height:130%"><span style="color:#999999">&nbsp;&nbsp;&nbsp;&nbsp;select&nbsp;name,comment&nbsp;from&nbsp;posts와&nbsp;똑같다&nbsp;*/</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#4be6fa">const</span>&nbsp;result&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;await&nbsp;post.findAll({</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;attributes:&nbsp;[<span style="color:#ffd500">'name'</span>,&nbsp;<span style="color:#ffd500">'comment'</span>]</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;});</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;res.send(result);</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;},</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;write:&nbsp;async&nbsp;(req,&nbsp;res)<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span><span style="color:#aaffaa"></span><span style="color:#ff3399">&gt;</span>{</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#999999">//body를&nbsp;구조분해&nbsp;할당한다.</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#4be6fa">const</span>&nbsp;{<span style="color:#0086b3">name</span>,&nbsp;<span style="color:#ff3399">password</span>,&nbsp;comment}&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;req.body;</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#999999">//posts테이블에&nbsp;요청받은&nbsp;body를&nbsp;기준으로&nbsp;새로운데이터를&nbsp;생성한다.</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;await&nbsp;post.create({</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#0086b3">name</span>,</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#ff3399">password</span>,</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;comment</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;});</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;res.<span style="color:#ff3399">status</span>(<span style="color:#c10aff">201</span>).send(<span style="color:#ffd500">'ok'</span>);</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;},</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;<span style="color:#999999">//수정&nbsp;삭제에서&nbsp;비밀번호&nbsp;확인</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;postPw:&nbsp;async&nbsp;(req,&nbsp;res)<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span><span style="color:#aaffaa"></span><span style="color:#ff3399">&gt;</span>{</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#4be6fa">const</span>&nbsp;{id,&nbsp;<span style="color:#ff3399">password</span>}&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;req.body;</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#4be6fa">const</span>&nbsp;result&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;await&nbsp;post.findOne({</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#999999">//비밀번호검증을&nbsp;한번&nbsp;거쳤기때문에&nbsp;패스워드를&nbsp;던져줘도&nbsp;괜찮</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;attributes:[<span style="color:#ffd500">'id'</span>,<span style="color:#ffd500">'name'</span>,<span style="color:#ffd500">'password'</span>,<span style="color:#ffd500">'comment'</span>],</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;where:{</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;id,<span style="color:#ff3399">password</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;})</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#ff3399">if</span>(result){</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res.<span style="color:#ff3399">status</span>(<span style="color:#c10aff">200</span>).send(result);</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;}<span style="color:#ff3399">else</span>{</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res.<span style="color:#ff3399">status</span>(<span style="color:#c10aff">400</span>).send(<span style="color:#ffd500">'invalid'</span>);</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;}</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;},</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;<span style="color:#999999">//수정</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;modify:&nbsp;async&nbsp;(req,&nbsp;res)<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span><span style="color:#aaffaa"></span><span style="color:#ff3399">&gt;</span>{</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#4be6fa">const</span>&nbsp;{id,&nbsp;<span style="color:#0086b3">name</span>,&nbsp;<span style="color:#ff3399">password</span>,&nbsp;comment}&nbsp;<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span>&nbsp;req.body;</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;await&nbsp;post.update({</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#0086b3">name</span>,<span style="color:#ff3399">password</span>,comment</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;},{</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;where:{</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;id</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;})</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;res.send(<span style="color:#ffd500">'수정완료'</span>);</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;},</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;<span style="color:#999999">//삭제작업은&nbsp;신중하기에&nbsp;password를&nbsp;한번&nbsp;더&nbsp;확인하는걸&nbsp;추천</span></div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;<span style="color:#4be6fa">delete</span>:&nbsp;async&nbsp;(req,&nbsp;res)<span style="color:#aaffaa"></span><span style="color:#ff3399">=</span><span style="color:#aaffaa"></span><span style="color:#ff3399">&gt;</span>{</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;await&nbsp;post.destroy({</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;where:{</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;id:req.body.id,</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;})</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;&nbsp;&nbsp;res.send(<span style="color:#ffd500">'삭제완료'</span>)</div><div style="padding:0 6px; white-space:pre; line-height:130%">&nbsp;&nbsp;},</div><div style="padding:0 6px; white-space:pre; line-height:130%">}</div></div><div style="text-align:right;margin-top:-13px;margin-right:5px;font-size:9px;font-style:italic"><a href="http://colorscripter.com/info#e" target="_blank" style="color:#4f4f4ftext-decoration:none">Colored by Color Scripter</a></div></td><td style="vertical-align:bottom;padding:0 2px 4px 0"><a href="http://colorscripter.com/info#e" target="_blank" style="text-decoration:none;color:white"><span style="font-size:9px;word-break:normal;background-color:#4f4f4f;color:white;border-radius:10px;padding:1px">cs</span></a></td></tr></table></div>
 
-const data = {posts: []};
-let id = 1;
+<br/>
 
-//서버실행 확인
-server.listen(port, () => {
-  console.log(`server is running port: ${port}`)
-})
-//body-parser설정
-server.use(bodyParser.json());
-//모든 cors요청 승인
-server.use(cors());
-
-//라우터
-
-//method: get ,url : '/' 
-server.get('/', (req, res) =>{
-  res.status(200).send(data);
-})
-
-//method: post, url : '/write'
-//그냥 서버에서 아이디를 달아주기로 했다.
-server.post('/write', (req, res) =>{
-  req.body.id = id;
-  id++;
-  data.posts.unshift(req.body);
-  res.status(201).send();
-})
-
-//method: post, url: '/modify' 
-//수정할 게시물의 비밀번호 확인
-server.post('/modify', (req, res) =>{
-  const modIdx = data.posts.findIndex(el => el.id === req.body.id);
-  if(req.body.password !== data.posts[modIdx].password){
-    res.status(401).send();
-  }else{
-    res.status(200).send(data.posts[modIdx])
-  }
-})
-
-//method: post, url: '/delete'
-//삭제할 게시물의 비밀번호 확인
-server.post('/delete', (req, res) =>{
-  const rmIdx = data.posts.findIndex(el => el.id === req.body.id);
-  if(req.body.password !== data.posts[rmIdx].password){
-    res.status(401).send();
-  }else{
-    res.status(200).send()
-  }
-})
-
-//method: put, url : '/modify'
-server.put('/modify', (req, res) =>{
-  const modIdx = data.posts.findIndex(el => el.id === req.body.id);
-  data.posts[modIdx].password = req.body.password;
-  data.posts[modIdx].title = req.body.title;
-  data.posts[modIdx].article = req.body.article;
-  res.status(200).send(data[modIdx])
-})
-
-//method: delete, url: '/delete'
-server.delete('/delete', (req, res) => {
-  const rmIdx = data.posts.findIndex(el => el.id === req.body.id);
-  data.posts.splice(rmIdx, 1);
-  res.status(200).send(data[rmIdx])
-})
-```
-
-___
-# postman test
-지금 당장 클라이언트를 만들어볼수도 없는 노릇이기에  
-내가 원하는 형태로 요청을 처리하는지 보자.  
-  
-## 불러오기 method: get ,url : '/' 
-<a href="https://imgur.com/q7zV9Xz"><img src="https://i.imgur.com/q7zV9Xz.png" title="source: imgur.com" /></a>
-
-get요청을 보내준다.  
-응답은
-<a href="https://imgur.com/7uKpRCw"><img src="https://i.imgur.com/7uKpRCw.png" title="source: imgur.com" /></a>
-
-아직 포스트한 데이터가 없다.
-
-## 작성 method: post, url : '/write'
-<a href="https://imgur.com/azr1IRg"><img src="https://i.imgur.com/azr1IRg.png" title="source: imgur.com" /></a>
-
-body에 클라이언트에서 보내야할 형식으로 json을 보낸다.  
-<a href="https://imgur.com/Wg6eSRt"><img src="https://i.imgur.com/Wg6eSRt.png" title="source: imgur.com" /></a>  
-
-성공적으로 데이터가 추가됐다.  
-
-## 패스워드 확인  
-
-틀린패스워드 보냈을 때
-<a href="https://imgur.com/TmaKhCV"><img src="https://i.imgur.com/TmaKhCV.png" title="source: imgur.com" /></a>
-
-<a href="https://imgur.com/6L0p0UG"><img src="https://i.imgur.com/6L0p0UG.png" title="source: imgur.com" /></a>
-
-옳바른 패스워드를 보냈을 때
-<a href="https://imgur.com/d5OznLn"><img src="https://i.imgur.com/d5OznLn.png" title="source: imgur.com" /></a>
-
-<a href="https://imgur.com/AXHCFlE"><img src="https://i.imgur.com/AXHCFlE.png" title="source: imgur.com" /></a>  
-
-옳바른 패스워드를 보낸다면 정상적으로 응답이 수행된다.  
-
-## 수정 method: put, url : '/modify'
-
-우선 원활한 테스트를 위해 몇개 post해봤다.
-<a href="https://imgur.com/P2678ha"><img src="https://i.imgur.com/P2678ha.png" title="source: imgur.com" /></a>  
-
-  
-id가 1인 데이터를 수정할거다.  
-<a href="https://imgur.com/WzJO8yf"><img src="https://i.imgur.com/WzJO8yf.png" title="source: imgur.com" /></a>  
-
-put요청을 보냈다. 요청은 성공했고 결과도 바르게올까?  
-<a href="https://imgur.com/qK6SQp1"><img src="https://i.imgur.com/qK6SQp1.png" title="source: imgur.com" /></a>  
-
-정상적으로 요청이 완료되고 데이터도 바뀐걸 볼 수 있다.  
-
-## 삭제 method: delete, url: '/delete'
-
-id가 1인 데이터를 삭제할거다.
-<a href="https://imgur.com/KhcWWf4"><img src="https://i.imgur.com/KhcWWf4.png" title="source: imgur.com" /></a> 
-
-위에서 설명했듯 삭제요청에는 내용이 id하나뿐이다.  
-<a href="https://imgur.com/ml6mla0"><img src="https://i.imgur.com/ml6mla0.png" title="source: imgur.com" /></a>
-
-요청한 데이터의 삭제까지 완료됐다.
+sequelize ORM은 mvc모델로 앱을 설계할때 특화돼있는걸 볼수있다.  
+실제로 이렇게 __중대한사항인 삭제와 수정__ 을처리할 때 별다른 보안조치를 하지않으면,  
+아무나 글을 막 삭제하고 수정하는 사태가 발생할 수 있다.  
+직접 실습할 때는 쿠키와 세션 그리고 토큰등을 통해 좀더 보안을 올려보자
