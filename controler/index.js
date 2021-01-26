@@ -7,12 +7,13 @@ module.exports = {
     또한 다른데이터는 굳이 쓸 일이 없어서다
     select name,comment from posts와 똑같다 */
     const result = await post.findAll({
-      attributes: ['name', 'comment']
+      attributes: ['id', 'name', 'comment']
     });
     res.send(result);
   },
   write: async (req, res)=>{
     //body를 구조분해 할당한다.
+    console.log(req.body, '############')
     const {name, password, comment} = req.body;
     //posts테이블에 요청받은 body를 기준으로 새로운데이터를 생성한다.
     await post.create({
@@ -52,6 +53,7 @@ module.exports = {
   },
   //삭제작업은 신중하기에 password를 한번 더 확인하는걸 추천
   delete: async (req, res)=>{
+    console.log(req.body)
     await post.destroy({
       where:{
         id:req.body.id,

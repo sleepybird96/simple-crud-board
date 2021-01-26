@@ -14,12 +14,14 @@ const port = 4000;
 server.use(bodyParser.json());
 //클라이언트에 해당하는 주소만 포함하고 get, post, put, delete, option메소드만 허용!
 server.use(cors({
-  "Access-Control-Allow-Origin": "https://127.0.0.1:3000",
   "methods": "GET,PUT,POST,DELETE,OPTIONS"
 }));
 //기록용
 server.use(morgan('dev'));
 //라우터사용
+server.get('/', (req, res)=>{
+  res.send('test aws')
+})
 server.use('/posts', router);
 //https 통신 사용
 https
