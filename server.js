@@ -3,7 +3,7 @@ const server = express();
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const morgan = require("morgan");
-const router = require("./router");
+// const router = require("./router");
 
 const port = 4000;
 
@@ -20,7 +20,7 @@ server.use(morgan('dev'));
 server.get('/', (req, res)=>{
   res.send('test aws')
 })
-server.use('/posts', router);
+// server.use('/posts', router);
 
 server.listen(port, ()=>{
   console.log('server on 5000')
