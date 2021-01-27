@@ -13,7 +13,6 @@ server.use(bodyParser.json());
 //클라이언트에 해당하는 주소만 포함하고 get, post, put, delete, option메소드만 허용!
 server.use(cors({
   "methods": "GET,PUT,POST,DELETE,OPTIONS",
-  origin:"https://kogong.gsang2board.click",
   credentials:true
 }));
 //기록용
