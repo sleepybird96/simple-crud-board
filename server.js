@@ -3,9 +3,7 @@ const server = express();
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const morgan = require("morgan");
-const https = require("https");
 const router = require("./router");
-const fs = require("fs")
 
 const port = 4000;
 
@@ -23,13 +21,7 @@ server.get('/', (req, res)=>{
   res.send('test aws')
 })
 server.use('/posts', router);
-//https 통신 사용
-https
-  .createServer(
-    {
-      key: fs.readFileSync('/Users/parkjisang/Desktop/dev/key.pem', 'utf-8'),
-      cert: fs.readFileSync('/Users/parkjisang/Desktop/dev/cert.pem', 'utf-8'),
-    },
-    server
-  )
-  .listen(port);
+
+server.listen(port, ()=>{
+  console.log('server on 5000')
+})
