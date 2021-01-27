@@ -38,7 +38,7 @@ module.exports = {
       }
     })
     if(result){
-      res.cookie('cookietest','hello cookie').status(200).send(result);
+      res.cookie('cookietest','hello cookie',cookieOption).status(200).send(result);
     }else{
       res.status(400).send('invalid');
     }
