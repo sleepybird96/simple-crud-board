@@ -1,4 +1,8 @@
 const {post} = require("../models");
+const cookieOption = {
+  secure:true,
+  sameSite:'none'
+}
 
 module.exports = {
   get: async (req, res)=>{
@@ -6,6 +10,7 @@ module.exports = {
     절대로 클라이언트는 비밀번호같은 개인정보를 받아선 안된다.
     또한 다른데이터는 굳이 쓸 일이 없어서다
     select name,comment from posts와 똑같다 */
+    console.log(req.cookies)
     const result = await post.findAll({
       attributes: ['id', 'name', 'comment']
     });
@@ -13,7 +18,6 @@ module.exports = {
   },
   write: async (req, res)=>{
     //body를 구조분해 할당한다.
-    console.log(req.body, '############')
     const {name, password, comment} = req.body;
     //posts테이블에 요청받은 body를 기준으로 새로운데이터를 생성한다.
     await post.create({
@@ -34,7 +38,7 @@ module.exports = {
       }
     })
     if(result){
-      res.status(200).send(result);
+      res.cookie('cookietest','hello cookie').status(200).send(result);
     }else{
       res.status(400).send('invalid');
     }
