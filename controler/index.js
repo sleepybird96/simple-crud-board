@@ -38,7 +38,7 @@ module.exports = {
       expiresIn:'1h'
     })
     if(result){
-      res.status(200).send({...result, token});
+      res.status(200).send({...result.dataValues, token});
     }else{
       res.status(400).send('invalid');
     }
