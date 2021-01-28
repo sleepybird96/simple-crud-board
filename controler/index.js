@@ -46,7 +46,7 @@ module.exports = {
     jwt.verify(
       req.headers.authorization.split(' ')[1],
       process.env.ACCESS_SECRET,
-      (err, result)=>{
+      async (err, result)=>{
         if(err){
           res.status(400).end();
         }else{
