@@ -77,11 +77,10 @@ module.exports = {
       req.headers.authorization.split(' ')[1],
       process.env.ACCESS_SECRET,
       async (err, result)=>{
-        console.log(result, '토큰')
         if(err){
           res.status(400).end();
         }else{
-            await post.update({
+            await post.destroy({
               where:{
                 id:result.id
               }
