@@ -12,8 +12,8 @@ const port = 4000;
 server.use(bodyParser.json());
 //클라이언트에 해당하는 주소만 포함하고 get, post, put, delete, option메소드만 허용!
 server.use(cors({
-  origin:['https://kogong.gsang2board.click','http://localhost:3000'],
-  methods:["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  origin:['https://kogong.gsang2board.click'],
+  methods:["GET", "POST", "PUT", "OPTIONS"],
   credentials:true
 }));
 //기록용

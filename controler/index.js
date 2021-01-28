@@ -17,12 +17,16 @@ module.exports = {
     //body를 구조분해 할당한다.
     const {name, password, comment} = req.body;
     //posts테이블에 요청받은 body를 기준으로 새로운데이터를 생성한다.
-    await post.create({
-      name,
-      password,
-      comment
-    });
-    res.status(201).send('ok');
+    if(name&&password&&comment){
+      await post.create({
+        name,
+        password,
+        comment
+      });
+      res.status(201).send('ok');
+    }else{
+      res.status(400).end();
+    }
   },
   //수정 삭제에서 비밀번호 확인
   postPw: async (req, res)=>{
@@ -75,7 +79,7 @@ module.exports = {
         if(err){
           res.status(400).end();
         }else{
-            await post.destroy({
+            await post.update({
               where:{
                 id:result.id
               }
