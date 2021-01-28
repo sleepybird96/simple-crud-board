@@ -43,6 +43,7 @@ module.exports = {
   //수정
   modify: async (req, res)=>{
     const {name, password, comment} = req.body;
+    console.log(req.headers)
     jwt.verify(
       req.headers.authorization.split(' ')[1],
       process.env.ACCESS_SECRET,
