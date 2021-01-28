@@ -58,6 +58,7 @@ module.exports = {
   //삭제작업은 신중하기에 password를 한번 더 확인하는걸 추천
   delete: async (req, res)=>{
     console.log(req.headers)
+    console.log(req.body)
     res.send('삭제완료')
   },
 }

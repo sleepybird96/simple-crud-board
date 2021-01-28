@@ -13,6 +13,6 @@ router.post('/delete', controler.postPw);
 //수정
 router.put('/modify', controler.modify);
 //삭제
-router.delete('/delete', controler.delete)
+router.put('/delete', controler.delete);
 
 module.exports = router;
