@@ -57,12 +57,7 @@ module.exports = {
   },
   //삭제작업은 신중하기에 password를 한번 더 확인하는걸 추천
   delete: async (req, res)=>{
-    console.log(req.body)
-    await post.destroy({
-      where:{
-        id:req.body.id,
-      }
-    })
+    console.log(req.headers)
     res.send('삭제완료')
   },
 }
