@@ -55,6 +55,7 @@ module.exports = {
       req.headers.authorization.split(' ')[1],
       process.env.ACCESS_SECRET,
       async (err, result)=>{
+        console.log(result)
         if(err){
           res.status(400).end();
         }else{
