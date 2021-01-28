@@ -1,8 +1,5 @@
 const {post} = require("../models");
-const cookieOption = {
-  secure:true,
-  sameSite:'none'
-}
+const jwt = require("jsonwebtoken");
 
 module.exports = {
   get: async (req, res)=>{
@@ -38,22 +35,32 @@ module.exports = {
       }
     })
     if(result){
-      res.cookie('cookietest','hello cookie',cookieOption).status(200).send(result);
+      res.cookie().status(200).send(result);
     }else{
       res.status(400).send('invalid');
     }
   },
   //수정
   modify: async (req, res)=>{
-    const {id, name, password, comment} = req.body;
-    await post.update({
-      name,password,comment
-    },{
-      where:{
-        id,password
-      }
-    })
-    res.send('수정완료');
+    const {name, password, comment} = req.body;
+    jwt.verify(
+      req.headers.authorization.split(' ')[1],
+      process.env.ACCESS_SECRET,
+      (err, result)=>{
+        if(err){
+          res.status(400).end();
+        }else{
+            await post.update({
+              name,password,comment
+            },{
+              where:{
+                id:result.id
+              }
+            })
+            res.status(201).end();
+          }
+        }
+    )
   },
   //삭제작업은 신중하기에 password를 한번 더 확인하는걸 추천
   delete: async (req, res)=>{
