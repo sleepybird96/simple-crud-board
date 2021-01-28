@@ -34,8 +34,11 @@ module.exports = {
         id,password
       }
     })
+    const token = jwt.sign({id}, process.env.ACCESS_SECRET, {
+      expiresIn:'1h'
+    })
     if(result){
-      res.cookie().status(200).send(result);
+      res.status(200).send({...result, token});
     }else{
       res.status(400).send('invalid');
     }
