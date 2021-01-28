@@ -50,7 +50,7 @@ module.exports = {
       name,password,comment
     },{
       where:{
-        id
+        id,password
       }
     })
     res.send('수정완료');
